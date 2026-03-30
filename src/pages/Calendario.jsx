@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter'
 import { Filter } from 'lucide-react'
 import { useEventos } from '@/hooks/useEventos'
 import CalendarioMes from '@/components/CalendarioMes'
@@ -9,6 +10,7 @@ import EventoCard    from '@/components/EventoCard'
 import { TIPOS, MATERIAS } from '@/utils/constants'
 
 dayjs.locale('es')
+dayjs.extend(isSameOrAfter)
 
 export default function Calendario() {
   const { eventos, loading, error } = useEventos({ soloPublicados: true })
