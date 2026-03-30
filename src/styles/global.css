@@ -1,0 +1,225 @@
+/* ─── Google Fonts ─────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+/* ─── Variables Craighouse ──────────────────────────────────────────── */
+:root {
+  --navy:        #0f1c3f;
+  --navy-mid:    #1a2d5a;
+  --red:         #c8102e;
+  --gold:        #c9a84c;
+  --bg:          #e9ebf3;
+
+  --green:       #2ecc71;
+  --amber:       #f39c12;
+  --blue:        #3498db;
+  --purple:      #9b59b6;
+  --gray:        #8a9bb5;
+  --gray-light:  #e8ecf4;
+
+  --font-title:  'Playfair Display', Georgia, serif;
+  --font-body:   'DM Sans', 'Segoe UI', sans-serif;
+  --font-mono:   'DM Mono', monospace;
+
+  --radius-card: 14px;
+  --radius-btn:  100px;
+  --shadow:      0 6px 28px rgba(15, 28, 63, 0.12);
+  --shadow-md:   0 12px 40px rgba(15, 28, 63, 0.15);
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--navy);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ─── Typography helpers ────────────────────────────────────────────── */
+h1, h2, h3 { font-family: var(--font-title); color: var(--navy); }
+
+/* ─── Layout ────────────────────────────────────────────────────────── */
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  width: 100%;
+}
+
+/* ─── Header ────────────────────────────────────────────────────────── */
+.site-header {
+  background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+  color: #fff;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 16px rgba(200, 16, 46, 0.15), 0 2px 12px rgba(0,0,0,0.2);
+  border-left: 5px solid var(--red);
+}
+
+.site-header .logo {
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  color: #fff;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.site-header .logo span {
+  color: var(--gold);
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────── */
+.site-footer {
+  background: var(--navy);
+  color: var(--gray);
+  text-align: center;
+  padding: 16px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.site-footer strong {
+  color: var(--gold);
+}
+
+/* ─── Cards ─────────────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: 0 6px 28px rgba(15, 28, 63, 0.12);
+  padding: 20px;
+  border-top: 3px solid var(--gold);
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: var(--radius-btn);
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.18s ease;
+  text-decoration: none;
+}
+
+.btn-primary   { background: linear-gradient(135deg, var(--red), #a6081f); color: #fff; font-weight: 600; }
+.btn-primary:hover { opacity: 0.92; box-shadow: 0 6px 20px rgba(200, 16, 46, 0.3); }
+
+.btn-danger    { background: var(--red);    color: #fff; }
+.btn-danger:hover { opacity: 0.88; }
+
+.btn-success   { background: var(--green);  color: #fff; }
+.btn-success:hover { opacity: 0.88; }
+
+.btn-ghost {
+  background: #fff;
+  color: var(--navy);
+  border: 1.5px solid var(--red);
+  font-weight: 500;
+}
+.btn-ghost:hover { background: #fff; border-color: var(--gold); box-shadow: 0 4px 12px rgba(200, 16, 46, 0.1); }
+
+/* ─── Badges de tipo ────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-prueba  { background: var(--red); color: #fff; font-weight: 600; }
+.badge-tarea   { background: var(--navy); color: #fff; font-weight: 600; }
+.badge-evento  { background: var(--green); color: #fff; font-weight: 600; }
+.badge-aviso   { background: var(--amber); color: #fff; font-weight: 600; }
+.badge-cumple  { background: var(--purple); color: #fff; font-weight: 600; }
+
+/* ─── Tipo colors ───────────────────────────────────────────────────── */
+.tipo-prueba  { --tipo-color: var(--red);    }
+.tipo-tarea   { --tipo-color: var(--navy);   }
+.tipo-evento  { --tipo-color: var(--green);  }
+.tipo-aviso   { --tipo-color: var(--amber);  }
+.tipo-cumple  { --tipo-color: var(--purple); }
+
+/* ─── Form inputs ───────────────────────────────────────────────────── */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-weight: 500; font-size: 0.875rem; color: var(--navy-mid); }
+
+.form-input,
+.form-select,
+.form-textarea {
+  padding: 10px 14px;
+  border: 1.5px solid var(--gray-light);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.925rem;
+  color: var(--navy);
+  background: #fff;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--navy-mid);
+}
+
+.form-textarea { resize: vertical; min-height: 80px; }
+
+/* ─── Divider ───────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--gray-light);
+  margin: 20px 0;
+}
+
+/* ─── Empty state ───────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--gray);
+  text-align: center;
+}
+
+.empty-state svg { opacity: 0.35; }
+.empty-state p { font-size: 0.95rem; }
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--gray-light); }
+::-webkit-scrollbar-thumb { background: var(--gray); border-radius: 3px; }
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .main-content { padding: 16px 12px 40px; }
+  .site-header  { padding: 14px 16px; }
+}

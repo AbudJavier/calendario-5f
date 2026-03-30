@@ -1,0 +1,143 @@
+{
+  "name": "Calendario 5F — Email a Evento",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [{ "mode": "everyMinute", "minute": 2 }]
+        },
+        "filters": {
+          "readStatus": "unread",
+          "receivedAfter": "={{ $now.minus(2, 'minutes').toISO() }}"
+        },
+        "options": {
+          "searchString": "to:abudjavier+calendario5f@gmail.com"
+        }
+      },
+      "name": "Gmail - Detectar Email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "id": "gmail-trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, messages: [{ role: 'user', content: `Eres un asistente que parsea emails de un colegio chileno (Craighouse School, 5° Básico F) y extrae eventos para un calendario escolar.\n\nAnaliza el siguiente email y extrae la información del evento académico.\n\nDe: ${$json.from?.value?.[0]?.address || $json.from || 'desconocido'}\nAsunto: ${$json.subject || 'sin asunto'}\nContenido:\n${$json.snippet || $json.textPlain || $json.text || 'sin contenido'}\n\nResponde SOLO con un JSON válido (sin markdown, sin backticks, sin explicación) con esta estructura exacta:\n{\n  \"titulo\": \"string - título corto y claro del evento\",\n  \"tipo\": \"prueba | tarea | evento | aviso | cumple\",\n  \"materia\": \"Matemáticas | Lenguaje | Inglés | Historia | Ciencias | Artes | Ed. Física | Diseño | Proyecto Comunitario | General\",\n  \"fecha\": \"YYYY-MM-DD\",\n  \"descripcion\": \"string - resumen breve del contenido del email\"\n}\n\nReglas:\n- Si no puedes determinar la fecha exacta, usa la fecha más probable mencionada\n- Si no se menciona materia específica, usa \"General\"\n- El tipo más común es \"prueba\" para evaluaciones, \"tarea\" para trabajos, \"evento\" para actividades, \"aviso\" para comunicados\n- El título debe ser conciso (máx 60 chars)\n- La descripción debe resumir lo relevante para los apoderados` }] }) }}"
+      },
+      "name": "Claude - Parsear Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "id": "claude-parse",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CONFIGURAR",
+          "name": "Anthropic API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraer el JSON de la respuesta de Claude\nconst response = $input.first().json;\nconst content = response.content?.[0]?.text || '{}';\n\n// Limpiar posibles backticks o texto extra\nlet cleanJson = content.trim();\nif (cleanJson.startsWith('```')) {\n  cleanJson = cleanJson.replace(/```json?\\n?/g, '').replace(/```/g, '').trim();\n}\n\ntry {\n  const evento = JSON.parse(cleanJson);\n  \n  // Validar campos requeridos\n  if (!evento.titulo || !evento.fecha) {\n    throw new Error('Faltan campos requeridos');\n  }\n  \n  return [{\n    json: {\n      titulo: evento.titulo,\n      tipo: evento.tipo || 'aviso',\n      materia: evento.materia || 'General',\n      fecha: evento.fecha,\n      descripcion: evento.descripcion || '',\n      estado: 'pendiente',\n      origen: 'email',\n      emailOrigen: $('Gmail - Detectar Email').first().json.from?.value?.[0]?.address || 'desconocido',\n      createdAt: new Date().toISOString()\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      error: true,\n      message: 'No se pudo parsear el email: ' + e.message,\n      rawContent: cleanJson\n    }\n  }];\n}"
+      },
+      "name": "Procesar Respuesta Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 300],
+      "id": "process-response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notTrue" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "¿Parseo OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 300],
+      "id": "check-parse"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://firestore.googleapis.com/v1/projects/calendario-5f/databases/(default)/documents/eventos",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ fields: { titulo: { stringValue: $json.titulo }, tipo: { stringValue: $json.tipo }, materia: { stringValue: $json.materia }, fecha: { timestampValue: $json.fecha + 'T12:00:00Z' }, descripcion: { stringValue: $json.descripcion }, estado: { stringValue: 'pendiente' }, origen: { stringValue: 'email' }, emailOrigen: { stringValue: $json.emailOrigen }, createdAt: { timestampValue: new Date().toISOString() } } }) }}"
+      },
+      "name": "Guardar en Firestore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 240],
+      "id": "save-firestore"
+    },
+    {
+      "parameters": {
+        "content": "### Calendario 5F — Pipeline Email → Evento\n\n**Flujo:**\n1. Gmail detecta email nuevo enviado a `abudjavier+calendario5f@gmail.com`\n2. Claude API parsea el email y extrae: título, tipo, materia, fecha, descripción\n3. Se guarda en Firestore con estado **pendiente**\n4. Miss Magdalena aprueba desde el Panel Admin\n\n**Configuración requerida:**\n- Credencial Gmail (OAuth2)\n- Credencial Anthropic API Key (Header Auth: `x-api-key`)\n- Firestore rules deben permitir escritura pública temporal o usar Service Account",
+        "height": 340,
+        "width": 440
+      },
+      "name": "Instrucciones",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [180, 480],
+      "id": "sticky-note"
+    }
+  ],
+  "connections": {
+    "Gmail - Detectar Email": {
+      "main": [
+        [{ "node": "Claude - Parsear Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude - Parsear Email": {
+      "main": [
+        [{ "node": "Procesar Respuesta Claude", "type": "main", "index": 0 }]
+      ]
+    },
+    "Procesar Respuesta Claude": {
+      "main": [
+        [{ "node": "¿Parseo OK?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Parseo OK?": {
+      "main": [
+        [{ "node": "Guardar en Firestore", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [{ "name": "calendario-5f" }]
+}

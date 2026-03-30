@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /eventos/{eventoId} {
+      // Lectura: apoderados ven "publicado", admin ve todo
+      allow read: if (resource.data.estado == "publicado") || (request.auth != null);
+
+      // Escritura:
+      // - Sin auth: solo crear "publicado" (para pruebas) o "pendiente" (para n8n)
+      // - Con auth: leer y escribir todo (admin)
+      allow write: if (request.auth != null) ||
+                      (request.resource.data.estado == "publicado") ||
+                      (request.resource.data.estado == "pendiente");
+    }
+
+  }
+}

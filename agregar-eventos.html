@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agregar Eventos - Calendario 5°F</title>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f1c3f 0%, #1a2a5e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #0f1c3f;
+            margin-bottom: 30px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .event-card {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-left: 4px solid #c8102e;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .event-card:hover {
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .event-card.added {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+            opacity: 0.7;
+        }
+
+        .event-title {
+            font-weight: 600;
+            color: #0f1c3f;
+            margin-bottom: 8px;
+        }
+
+        .event-details {
+            font-size: 13px;
+            color: #666;
+            margin: 5px 0;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .event-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-added {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-add-all {
+            background: linear-gradient(135deg, #c8102e, #a00824);
+            color: white;
+        }
+
+        .btn-add-all:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(200, 16, 46, 0.3);
+        }
+
+        .btn-add-all:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-view-calendar {
+            background: #f0f0f0;
+            color: #0f1c3f;
+        }
+
+        .btn-view-calendar:hover {
+            background: #e0e0e0;
+        }
+
+        .progress {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .progress.complete {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            display: inline-block;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Agregar Eventos de Prueba</h1>
+
+        <div id="eventsList"></div>
+
+        <div class="button-group">
+            <button class="btn-add-all" id="btnAddAll">✨ Agregar Todos</button>
+            <button class="btn-view-calendar" id="btnView">Ver Calendario</button>
+        </div>
+
+        <div id="progress" class="progress" style="display: none;">
+            <span class="loading" id="loadingIcon">⏳</span>
+            <span id="progressText">Agregando eventos...</span>
+        </div>
+    </div>
+
+    <script>
+        let db = null;
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCgrqhpkkLzkrSbyxRjhZY_qJG9hddDfh8",
+            authDomain: "calendario-5f.firebaseapp.com",
+            projectId: "calendario-5f",
+            storageBucket: "calendario-5f.firebasestorage.app",
+            messagingSenderId: "291263589729",
+            appId: "1:291263589729:web:e8d3d74d57a55bd7fee920"
+        };
+
+        // Inicializar Firebase cuando esté disponible
+        function initFirebase() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    console.log('✅ Firebase iniciado correctamente');
+                    document.getElementById('eventsList').style.display = 'block';
+                } else {
+                    setTimeout(initFirebase, 500);
+                }
+            } catch (e) {
+                console.error('Error inicializando Firebase:', e);
+            }
+        }
+
+        initFirebase();
+
+        // Eventos de prueba
+        const eventos = [
+            {
+                titulo: "Prueba de Matematicas",
+                tipo: "prueba",
+                materia: "Matematicas",
+                fecha: new Date("2026-04-02T14:00:00"),
+                descripcion: "Unidad de fracciones y decimales. Estudiar capitulos 5 y 6.",
+                estado: "publicado",
+                origen: "manual"
+            },
+            {
+                titulo: "Entrega Trabajo de Historia",
+                tipo: "tarea",
+                materia: "Historia",
+                fecha: new Date("2026-04-07T12:00:00"),
+                descripcion: "Trabajo grupal sobre pueblos originarios de Chile.",
+                estado: "publicado",
+                origen: "manual"
+            },
+            {
+                titulo: "Dia del Libro",
+                tipo: "evento",
+                materia: "Lenguaje",
+                fecha: new Date("2026-04-23T09:00:00"),
+                descripcion: "Celebracion del dia del libro. Traer libro favorito.",
+                estado: "publicado",
+                origen: "manual"
+            },
+            {
+                titulo: "Prueba de Ciencias Naturales",
+                tipo: "prueba",
+                materia: "Ciencias",
+                fecha: new Date("2026-03-31T10:00:00"),
+                descripcion: "Sistema solar y planetas. Revisar guia entregada.",
+                estado: "publicado",
+                origen: "manual"
+            },
+            {
+                titulo: "Reunion de Apoderados",
+                tipo: "evento",
+                materia: "Administracion",
+                fecha: new Date("2026-04-15T18:30:00"),
+                descripcion: "Reunion de apoderados 5°F. Asistencia obligatoria.",
+                estado: "publicado",
+                origen: "manual"
+            }
+        ];
+
+        let addedCount = 0;
+
+        function renderEventsList() {
+            const list = document.getElementById('eventsList');
+            list.innerHTML = eventos.map((evento, index) => `
+                <div class="event-card" id="event-${index}">
+                    <div class="event-title">${evento.titulo}</div>
+                    <div class="event-details">
+                        <span>📅 ${evento.fecha.toLocaleDateString('es-CL')}</span>
+                        <span>📚 ${evento.materia}</span>
+                        <span>🏷️ ${evento.tipo}</span>
+                    </div>
+                    <div class="event-status status-pending" id="status-${index}">⏳ Pendiente</div>
+                </div>
+            `).join('');
+        }
+
+        async function addAllEvents() {
+            if (!db) {
+                alert('❌ Firebase aún no está inicializado. Por favor, espera e intenta de nuevo.');
+                return;
+            }
+
+            const btn = document.getElementById('btnAddAll');
+            const progress = document.getElementById('progress');
+
+            btn.disabled = true;
+            progress.style.display = 'block';
+
+            for (let i = 0; i < eventos.length; i++) {
+                const evento = eventos[i];
+                try {
+                    await db.collection('eventos').add({
+                        ...evento,
+                        fecha: firebase.firestore.Timestamp.fromDate(evento.fecha)
+                    });
+
+                    // Actualizar UI
+                    const card = document.getElementById(`event-${i}`);
+                    const status = document.getElementById(`status-${i}`);
+                    card.classList.add('added');
+                    status.textContent = '✅ Agregado';
+                    status.className = 'event-status status-added';
+                    addedCount++;
+
+                    document.getElementById('progressText').textContent =
+                        `${addedCount}/${eventos.length} eventos agregados...`;
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    const status = document.getElementById(`status-${i}`);
+                    status.textContent = '❌ Error';
+                    status.className = 'event-status';
+                    status.style.background = '#f8d7da';
+                    status.style.color = '#721c24';
+                }
+            }
+
+            // Completado
+            progress.classList.add('complete');
+            document.getElementById('loadingIcon').textContent = '✨';
+            document.getElementById('progressText').textContent =
+                `¡Listo! ${addedCount} eventos agregados exitosamente. Recarga el calendario.`;
+            btn.disabled = false;
+        }
+
+        // Esperar a que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', function() {
+            renderEventsList();
+            document.getElementById('btnAddAll').addEventListener('click', addAllEvents);
+            document.getElementById('btnView').addEventListener('click', () => {
+                window.open('https://calendario-5f.vercel.app', '_blank');
+            });
+        });
+    </script>
+</body>
+</html>
