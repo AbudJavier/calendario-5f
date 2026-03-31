@@ -1,5 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 export default async function handler(req, res) {
   // Solo POST
   if (req.method !== "POST") {
@@ -9,24 +7,25 @@ export default async function handler(req, res) {
   try {
     const { emailContent, emailSubject } = req.body;
 
-    // Validar que lleguen los datos
     if (!emailContent) {
       return res.status(400).json({ error: "emailContent is required" });
     }
 
-    // Inicializar cliente Anthropic (usa ANTHROPIC_API_KEY env var)
-    const client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-
-    // Llamar a Claude para analizar el email
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: `Eres un asistente que parsea emails de un colegio chileno (Craighouse School, 5° Básico F) y extrae eventos para un calendario escolar.
+    // Llamar a Claude directamente via fetch (sin SDK)
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "user",
+            content: `Eres un asistente que parsea emails de un colegio chileno (Craighouse School, 5° Básico F) y extrae eventos para un calendario escolar.
 
 Analiza el siguiente email y extrae información para crear un evento de calendario.
 
@@ -41,32 +40,30 @@ Retorna un JSON con:
 - descripcion: (descripción del evento)
 
 Retorna SOLO el JSON, sin markdown, sin backticks, sin explicación.`,
-        },
-      ],
+          },
+        ],
+      }),
     });
 
-    // Extraer el texto de la respuesta
-    const responseText =
-      message.content[0].type === "text" ? message.content[0].text : "";
+    const data = await response.json();
 
-    // Parsear JSON
+    if (!response.ok) {
+      return res.status(500).json({ error: data.error?.message || "Error de Claude API" });
+    }
+
+    const responseText = data.content?.[0]?.text || "";
+
     let eventData;
     try {
       eventData = JSON.parse(responseText);
     } catch (e) {
-      return res.status(400).json({ error: "Claude no retornó JSON válido" });
+      return res.status(400).json({ error: "Claude no retornó JSON válido", raw: responseText });
     }
 
-    // Retornar los datos procesados
-    return res.status(200).json({
-      success: true,
-      eventData,
-      tokensUsed: message.usage,
-    });
+    return res.status(200).json({ success: true, eventData });
+
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({
-      error: error.message || "Error processing email",
-    });
+    return res.status(500).json({ error: error.message || "Error interno" });
   }
 }
