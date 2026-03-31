@@ -262,6 +262,21 @@ export default function Calendario() {
 
       <footer className="site-footer">
         powered by <strong>REMO</strong>
+        <span style={{ margin: '0 8px', opacity: 0.3 }}>·</span>
+        <a
+          href="/admin"
+          style={{
+            color: 'var(--gray)',
+            textDecoration: 'none',
+            opacity: 0.4,
+            fontSize: '0.75rem',
+            transition: 'opacity 0.2s',
+          }}
+          onMouseEnter={e => e.target.style.opacity = '0.9'}
+          onMouseLeave={e => e.target.style.opacity = '0.4'}
+        >
+          admin
+        </a>
       </footer>
 
       {/* Modales */}
